@@ -223,7 +223,6 @@ class ImageViewer(ctk.CTk):
         self.set_down_box_motion_key_label.grid(column=0, row=6)
         self.set_down_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind", command=self.bind_box_move_down_key)
         self.set_down_box_motion_key_button.grid(column=1, row=6)
-        
         # CROPPER FRAMES
         self.main_frame = ctk.CTkFrame(self.tab_view.tab("Cropper"), width=1200, height=1000)
         self.main_frame.grid(column=0, row=0, sticky='nsew')
@@ -378,6 +377,9 @@ class ImageViewer(ctk.CTk):
     
     
     def set_button_color(self, *args):
+        """ 
+        Set all the buttons to the color in the set_button_color_combo
+        """
         self.button_color = self.set_button_color_combo.get()
         self.load_image_button.configure(fg_color=self.button_color)
         self.move_left_button.configure(fg_color=self.button_color)
@@ -393,6 +395,9 @@ class ImageViewer(ctk.CTk):
         self.coordinates_frame.save_button.configure(fg_color=self.button_color)
         
     def set_font_size(self, *args):
+        """ 
+        Set the font size of available text to the value in set_font_size_combo
+        """
         self.font_size = int(self.set_font_size_combo.get())
         self.set_font()
     
@@ -426,11 +431,16 @@ class ImageViewer(ctk.CTk):
                 print(e)
         
     def set_default_font_name(self, *args):
+        """ Sets the default font to the value in set_font_name_combo
+        """
         self.font_name = self.set_font_name_combo.get()
         print(self.font_name)
         self.set_font()
         
     def set_font(self):
+        """ 
+        called by one of the font methods after an update
+        """
         self.font_object = ctk.CTkFont(family=self.font_name, size=self.font_size, weight=self.font_weight, slant=self.font_slant)
         self.load_image_button.configure(font=self.font_object)
         self.move_left_button.configure(font=self.font_object)
@@ -448,6 +458,10 @@ class ImageViewer(ctk.CTk):
         self.save_image_extension_combo.configure(font=self.font_object)
         
     def set_window_appearance(self, *args):
+        """
+        set the window color to one of three "system" "dark" or "light",
+        dependent on the value in set_window_mode_combo
+        """
         self.current_appearance = self.set_window_mode_combo.get()
         ctk.set_appearance_mode(self.current_appearance)
     
