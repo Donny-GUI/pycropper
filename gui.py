@@ -1,12 +1,11 @@
-from typing import Literal, Optional, Tuple, Union
-import threading 
+from typing import Literal, Tuple
 import customtkinter as ctk
-from PIL import Image
 from customtkinter.windows.widgets.font import CTkFont
 import webcolors
 from PIL import ImageTk, Image
 import json
 import sys
+from images import Photos
 
 OSX = sys.platform
 
@@ -44,7 +43,7 @@ class CoordinateFrame(ctk.CTkFrame):
         self.photoimage = ctk.CTkCanvas(self, width=w, height=h)
         self.photoimage.grid(column=3, row=0, pady=2, padx=2)
         self.photoimage.create_image(w//2, h//2, image=self.sub_photoimage)
-        self.remove_button = ctk.CTkButton(self, image=make_photo("minus.png")[0], text="", width=30, height=30)
+        self.remove_button = ctk.CTkButton(self, image=Photos.minus, text="", width=30, height=30)
         self.remove_button.grid(column=4, row=0, rowspan=3, pady=(2,2), padx=(40,2))
         self.remove_button.bind("Button-1", self.remove_me)
     
@@ -136,15 +135,6 @@ class ImageViewer(ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
         
-        # IMAGES
-        self.arrow_up_photo, self.arrow_up_width, self.arrow_up_height = make_photo("arrowup.png")
-        self.arrow_left_photo, self.arrow_left_width, self.arrow_left_height = make_photo("arrowleft.png")
-        self.arrow_right_photo, self.arrow_right_width, self.arrow_right_height = make_photo("arrowright.png")
-        self.arrow_down_photo, self.arrow_down_width, self.arrow_down_height = make_photo("arrowdown.png")
-        self.load_image_photo, self.load_image_width, self.load_image_height = make_photo("uploadimage.png") 
-        self.plus_photo, self.plus_width, self.plus_height = make_photo("plus.png")
-        self.minus_photo, self.minus_width, self.minus_height = make_photo("minus.png") 
-        self.save_photo, self.save_width, self.save_height = make_photo("save.png") 
         # VARIABLES
         self.usable_fonts = self._get_usable_fonts()
         self.basic_font = ctk.CTkFont(family=self.usable_fonts[2], size=16)
@@ -200,18 +190,18 @@ class ImageViewer(ctk.CTk):
         # CROPPER WIDGETS
         self.image_canvas                   = ctk.CTkCanvas(    self.subframe_bottom,    width=400, height=400, borderwidth=0, background="black")
         self.subimage_canvas                = ctk.CTkCanvas(    self.subframe_right_top, width=60,  height=60,  borderwidth=0,)
-        self.load_image_button              = ctk.CTkButton(    self.subframe_right_top,image=self.load_image_photo, text="Load Image", command=self.get_image, border_width=10, font=self.basic_font)
+        self.load_image_button              = ctk.CTkButton(    self.subframe_right_top,image=Photos.upload_image, text="Load Image", command=self.get_image, border_width=10, font=self.basic_font)
         self.coordinates_frame              = CoordinatesFrame( self.subframe_right_top)
-        self.move_left_button               = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_left_width, text= "", image=self.arrow_left_photo, command=self.move_box_left, font=self.basic_font)
+        self.move_left_button               = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_left_width, text= "", image=Photos.arrow_left, command=self.move_box_left, font=self.basic_font)
         self.add_coordinate_button          = ctk.CTkButton(    self.subframe_right_bottom, text="save coordinate", command=self.mark_coordinate, font=self.basic_font)
-        self.move_right_button              = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_right_width, text= "", image=self.arrow_right_photo, command=self.move_box_right, font=self.basic_font)
-        self.move_up_button                 = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_up_width, text= "", image=self.arrow_up_photo, command=self.move_box_up, font=self.basic_font)
-        self.move_down_button               = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_down_width, text= "", image=self.arrow_down_photo, command=self.move_box_down, font=self.basic_font)
-        self.increase_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=self.plus_photo,  text="box width", command=self.increase_box_width, font=self.basic_font)
-        self.decrease_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=self.minus_photo, text="box width", command=self.increase_box_width, font=self.basic_font)
-        self.increase_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=self.plus_photo,  text="box height", command=self.increase_box_height, font=self.basic_font)
-        self.decrease_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=self.minus_photo, text="box height", command=self.increase_box_height, font=self.basic_font)
-        self.save_crop_button               = ctk.CTkButton(    self.subframe_right_bottom, image=self.save_photo,  text="Save Crop", command=self.save_crop, font=self.basic_font)
+        self.move_right_button              = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_right_width, text= "", image=Photos.arrow_right, command=self.move_box_right, font=self.basic_font)
+        self.move_up_button                 = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_up_width, text= "", image=Photos.arrow_up, command=self.move_box_up, font=self.basic_font)
+        self.move_down_button               = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_down_width, text= "", image=Photos.arrow_down, command=self.move_box_down, font=self.basic_font)
+        self.increase_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.plus,  text="box width", command=self.increase_box_width, font=self.basic_font)
+        self.decrease_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box width", command=self.increase_box_width, font=self.basic_font)
+        self.increase_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.plus,  text="box height", command=self.increase_box_height, font=self.basic_font)
+        self.decrease_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box height", command=self.increase_box_height, font=self.basic_font)
+        self.save_crop_button               = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.save,  text="Save Crop", command=self.save_crop, font=self.basic_font)
         self.save_image_name_label          = ctk.CTkLabel(     self.subframe_right_bottom, text="Image Name: ", font=self.basic_font)
         self.save_image_name                = ctk.CTkEntry(     self.subframe_right_bottom, placeholder_text="cropped_image", font=self.basic_font)
         self.save_image_extension_combo     = ctk.CTkComboBox(  self.subframe_right_bottom, values=["PNG", "GIF", "JPG"],  font=self.basic_font)
@@ -253,45 +243,54 @@ class ImageViewer(ctk.CTk):
     def disable_until_image_loaded(self) -> None:
         """ Disables the buttons that would cause harm if pressed before image uploaded
         """
-        self.move_left_button.configure(state="disabled")
-        self.add_coordinate_button.configure(state="disabled")
-        self.move_right_button.configure(state="disabled")
-        self.move_up_button.configure(state="disabled")
-        self.move_down_button.configure(state="disabled")
-        self.save_crop_button.configure(state="disabled")
-        self.increase_box_width_button.configure(state="disabled")
-        self.decrease_box_width_button.configure(state="disabled")
-        self.increase_box_height_button.configure(state="disabled")
-        self.decrease_box_height_button.configure(state="disabled")
+        self.move_left_button.configure(            state="disabled")
+        self.add_coordinate_button.configure(       state="disabled")
+        self.move_right_button.configure(           state="disabled")
+        self.move_up_button.configure(              state="disabled")
+        self.move_down_button.configure(            state="disabled")
+        self.save_crop_button.configure(            state="disabled")
+        self.increase_box_width_button.configure(   state="disabled")
+        self.decrease_box_width_button.configure(   state="disabled")
+        self.increase_box_height_button.configure(  state="disabled")
+        self.decrease_box_height_button.configure(  state="disabled")
         
     def enabled_after_image_loaded(self) -> None:
         """ Enables the buttons that would cause harm if pressed before an image is uploaded
         """
-        self.move_left_button.configure(state="normal")
-        self.add_coordinate_button.configure(state="normal")
-        self.move_right_button.configure(state="normal")
-        self.move_up_button.configure(state="normal")
-        self.move_down_button.configure(state="normal")
-        self.increase_box_width_button.configure(state="normal")
-        self.increase_box_height_button.configure(state="normal")
-        self.save_crop_button.configure(state="normal")
-        self.increase_box_width_button.configure(state ="normal")
-        self.decrease_box_width_button.configure(state ="normal")
-        self.increase_box_height_button.configure(state="normal")
-        self.decrease_box_height_button.configure(state="normal")
+        self.move_left_button.configure(                state="normal")
+        self.add_coordinate_button.configure(           state="normal")
+        self.move_right_button.configure(               state="normal")
+        self.move_up_button.configure(                  state="normal")
+        self.move_down_button.configure(                state="normal")
+        self.increase_box_width_button.configure(       state="normal")
+        self.increase_box_height_button.configure(      state="normal")
+        self.save_crop_button.configure(                state="normal")
+        self.increase_box_width_button.configure(       state="normal")
+        self.decrease_box_width_button.configure(       state="normal")
+        self.increase_box_height_button.configure(      state="normal")
+        self.decrease_box_height_button.configure(      state="normal")
+        
         self.load_image_button.configure(border_width=0)
     
     def mark_coordinate(self) -> None:
+        """ if the main image is set, creates a box of the current selector coordinates and appends the box to the list of boxes,
+        then adds the coordinates to the coordinates frame
+        """
         if self.main_image_path != None:
             box = (self.rectx, self.recty, self.rectw, self.recth)
             self.boxes.append(box)
             self.coordinates_frame.add_coordinate(self.rectx, self.recty, self.rectw, self.recth, self.main_image_path)
     
     def set_save_extension(self, *args) -> None:
+        """ gets the value of the extension combo box and makes the extension.
+        """
         self.save_image_extension = self.save_image_extension_combo.get()
         self.save_image_extension_lower = "." + self.save_image_extension.lower()
         
     def save_crop(self) -> None:
+        """ opens the main image and crops it, gets the extension used and makes the filename,
+        then saves the file that is cropped as the given filename
+        """
         self.subimage = Image.open(self.main_image_path)
         self.cropped_image = self.subimage.crop((self.rectx, self.recty, self.rectx + self.rectw, self.recty + self.recth))
         self.set_save_extension()
@@ -299,26 +298,42 @@ class ImageViewer(ctk.CTk):
         self.cropped_image.save(fp=self.save_image_extension_filename, format=self.save_image_extension)
     
     def increase_box_width(self) -> None:
+        """ 
+        increases the rectange width of the selector and refreshes the image
+        """
         self.rectw +=1
         self.refresh_image()
     
     def increase_box_height(self) -> None:
+        """
+        increases the rectange height of the selector and refreshes the image
+        """
         self.recth +=1
         self.refresh_image()
         
     def move_box_down(self) -> None:
+        """
+        moves the box DOWN a height length of the box, then refreshes the image
+        """
         self.recty+=self.recth 
         if self.recty > self.image_height:
             self.recty = 0
         self.refresh_image()
         
     def move_box_up(self) -> None:
+        """
+        moves the box UP a height length of the box, then refreshes the image
+        """
         self.recty = self.recty - self.recth 
         if self.recty < 0:
             self.recty = self.image_height
         self.refresh_image()
     
     def move_box_left(self) -> None:
+        """
+        moves the select box one width length to the left, 
+        if its off the screen goes to the previous row and at the end.
+        """
         self.rectx = self.rectx - self.rectw
         if self.rectx < 0:
             self.rectx = self.image_width - self.rectw
@@ -328,6 +343,10 @@ class ImageViewer(ctk.CTk):
         self.refresh_image()
     
     def move_box_right(self) -> None:
+        """
+        moves the select box one width length to the right, 
+        if its off the screen goes to the next row and at the beginning.
+        """
         self.rectx+=self.rectw
         if self.rectx == self.image_width:
             self.rectx = 0
@@ -337,6 +356,10 @@ class ImageViewer(ctk.CTk):
         self.refresh_image()
         
     def get_image(self) -> None:
+        """
+        called when the browse file has achieved completion. sets the flag for the buttons to be 
+        set to undisabled. sets the flag for the buttons to not be checked again
+        """
         image_file = ctk.filedialog.askopenfilename()
         if image_file is not None:
             self.image_uploaded = True
@@ -347,20 +370,35 @@ class ImageViewer(ctk.CTk):
                 self.buttons_enabled = True
     
     def set_image(self, image_path):
+        """ takes the used filepath and create the main image and subimages
+        then refreshes the images
+
+        Args:
+            image_path (str): chosen filepath
+        """
         self.main_image_path = image_path
-        self.image, self.matrix, self.image_width, self.image_height, self.image_center_width, self.image_center_height = image_to_photo(image_path)
+        self.image, self.matrix, self.image_width, self.image_height, self.image_center_width, self.image_center_height = self.image_to_photo(image_path)
         self.reset_box_location()
         self.refresh_image()
     
     def reset_box_location(self) -> None:
+        """
+        sets the rect x and y coordinate to 0
+        """
         self.rectx = 0
         self.recty = 0
     
     def calculate_subimage_width_height(self) -> None:
+        """
+        calculates half of the subimage using floor division or regular division if mod 2
+        """
         self.subimage_canvas_width = self.rectw/2 if self.rectw%2==0 else self.rectw//2
         self.subimage_canvas_height = self.recth/2 if self.recth%2==0 else self.recth//2
     
     def refresh_image(self) -> None:
+        """
+        refreshes the cursor, the image, the subimage and draws the cursor and rectangles selected
+        """
         self.image_canvas.create_image(self.image_center_width, self.image_center_height, image=self.image)
         self.image_canvas.configure(height=self.image_height, width=self.image_width)
         self.calculate_subimage_width_height()
@@ -368,6 +406,9 @@ class ImageViewer(ctk.CTk):
         self.draw_all_rectangles()
     
     def draw_subimage(self) -> None:
+        """
+        draws the subimage in its canvas. First by opening the image, then getting the selector location as an image
+        """
         self.subimage = Image.open(self.main_image_path)
         self.cropped_image = self.subimage.crop((self.rectx, self.recty, self.rectx + self.rectw, self.recty + self.recth))
         self.cropped_image = self.cropped_image.convert("RGB")
@@ -377,10 +418,16 @@ class ImageViewer(ctk.CTk):
         self.subimage_canvas.configure(height=self.recth*self.subimage_zoom_factor, width=self.rectw*self.subimage_zoom_factor)
     
     def draw_all_rectangles(self):
+        """
+        draws all the rectanges including previously selected and what not
+        """
         self.draw_rectangle()
         self.draw_saved_coordinates()
     
     def draw_rectangle(self, *args) -> None:
+        """
+        draws the selector and its outer layer, calls itself as an after call to continue changing its color
+        """
         self.get_next_color()
         self.image_canvas.create_rectangle(self.rectx,  self.recty, self.rectx+self.rectw, self.recty+self.recth,  outline=self.current_color)
         self.image_canvas.create_rectangle(self.rectx-1,  self.recty+1, self.rectx+self.rectw+1, self.recty+self.recth+1,  outline=self.second_color)
@@ -390,52 +437,57 @@ class ImageViewer(ctk.CTk):
         
     
     def draw_saved_coordinates(self):
+        """
+        iterates over the saved boxes and draws them on the main image
+        """
         for box in self.boxes:
             rect = self.image_canvas.create_rectangle(box[0],  box[1], box[0]+box[2], box[1]+box[3],  outline="blue")
     
-    def async_get_next_color(self):
-        self.color_thread = threading.Thread(target=self.get_next_color)
-        self.color_thread.run()
         
     def get_next_color(self):
+        """
+        gets the next color in the sequence, also sets the secondary color to the last color
+        """
         self.second_color= self.colors[self.color_index]
         self.color_index+=1
         if self.color_index > self.color_max:
             self.color_index = 0
         self.current_color = self.colors[self.color_index]
-        
     
-        
-def crop_image(image_path, x, y, width, height):
-    image = Image.open(image_path)
-    cropped_image = image.crop((x, y, x + width, y + height))
-    return cropped_image
+    def image_to_photo(self, image_path):
+        """
+        takes an image path and returns a ImageTk.PhotoImage from it
 
-def create_subimage_from_image(image, x, y, w, h):
-    cropped_image = crop_image(image, x, y, w, h)
-    cropped_image = cropped_image.convert("RGB")
-    photoimage = ImageTk.PhotoImage(cropped_image)
-    return photoimage
+        Args:
+            image_path (str): path to the image file
 
-def image_to_photo(image_path):
-    img = Image.open(image_path)
-    width, height = img.size
-    print(height)
-    print(width)
-    img.convert("RGB")
-    im = ImageTk.PhotoImage(img, size=(width, height))
-    rimgdata = img.getdata()
-    img.close()
-    return im, rimgdata, width, height, width//2, height//2
+        Returns:
+            ImageTk.PhotoImage
+        """
+        img = Image.open(image_path)
+        width, height = img.size
+        img.convert("RGB")
+        im = ImageTk.PhotoImage(img, size=(width, height))
+        rimgdata = img.getdata()
+        img.close()
+        return im, rimgdata, width, height, width//2, height//2   
+    
+    def make_photo(self, image_path):
+        """
+        better version of image_to_photo
 
-def make_photo(image_path):
-    img = Image.open(image_path)
-    width, height = img.size
-    img.convert("RGB")
-    im = ImageTk.PhotoImage(img, size=(width, height))
-    img.close()
-    return im, width, height
+        Args:
+            image_path (str): path to the image file
 
+        Returns:
+            ImageTk.PhtoImage
+        """
+        img = Image.open(image_path)
+        width, height = img.size
+        img.convert("RGB")
+        im = ImageTk.PhotoImage(img, size=(width, height))
+        img.close()
+        return im, width, height
 
 
 if __name__ == '__main__':
