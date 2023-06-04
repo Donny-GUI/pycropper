@@ -1,3 +1,4 @@
+import subprocess
 from typing import Literal, Tuple
 import customtkinter as ctk
 from customtkinter.windows.widgets.font import CTkFont
@@ -5,8 +6,8 @@ import webcolors
 from PIL import ImageTk, Image
 import json
 import sys
-
-OSX = sys.platform
+import win32com.client
+from fontTools import ttLib
 
 
 
@@ -88,60 +89,72 @@ class CoordinatesFrame(ctk.CTkFrame):
         coords = self.get_coordinates()
         with open("coordinates.json", "w") as jfile:
             json.dump(coords, jfile)
-    
-    
+
+
+class SliceWindow(ctk.CTk):
+    def __init__(self):
+        super().__init__()    
+
+  
+class BindWindow(ctk.CTkToplevel):
+    def __init__(self, button, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("400x300")
+        self.button = button
+        self.label = ctk.CTkLabel(self, text="Press Any Key to Bind it")
+        self.label.pack(padx=20, pady=20)
+        self.bind("<ButtonPress>", self.button_pressed)
+
+    def button_pressed(self, event):
+        self.button.bind()
+
 class ImageViewer(ctk.CTk):
-    mac_fonts = [
-    "Arial",
-    "Helvetica",
-    "Verdana",
-    "Times New Roman",
-    "Courier New",
-    "Georgia",
-    "Trebuchet MS",
-    "Lucida Grande",
-    "Palatino",
-    "Comic Sans MS",
-    ]
+    colors = list(webcolors.CSS3_NAMES_TO_HEX.keys())
+    color_max = len(colors) - 1
+    keyboard_keys = [
+    # Alphabets
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+    
+    # Numerical keys
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    
+    # Function keys
+    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10',
+    'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20',
+    
+    # Arrow keys
+    'Up', 'Down', 'Left', 'Right',
 
-    # Common fonts on Windows
-    windows_fonts = [
-        "Arial",
-        "Helvetica",
-        "Verdana",
-        "Times New Roman",
-        "Courier New",
-        "Georgia",
-        "Trebuchet MS",
-        "Lucida Sans",
-        "Palatino Linotype",
-        "Comic Sans MS",
     ]
-
-    # Common fonts on Linux
-    linux_fonts = [
-        "Arial",
-        "Helvetica",
-        "DejaVu Sans",
-        "Liberation Sans",
-        "Noto Sans",
-        "FreeSans",
-        "Ubuntu",
-        "Roboto",
-        "Droid Sans",
-        "Cantarell",
-    ]
+    
     def __init__(self) -> None:
         
         super().__init__()
+        self.configure(width=1000, height=1200)
         # sorry
         from images import Photos
         
         # VARIABLES
-        self.usable_fonts = self._get_usable_fonts()
-        self.basic_font = ctk.CTkFont(family=self.usable_fonts[2], size=16)
-        self.italic_font = ctk.CTkFont(family=self.usable_fonts[2], size=16, slant="italic")
-        self.bold_font = ctk.CTkFont(family=self.usable_fonts[2], size=16, weight="bold")
+        self.move_box_left_key = ""
+        self.move_box_left_key_denote = ""
+        self.move_box_right_key = ""
+        self.move_box_right_key_denote = ""
+        self.move_box_up_key = ""
+        self.move_box_up_key_denote = ""
+        self.move_box_down_key = ""
+        self.move_box_down_key_denote = ""
+        self.fonts = []
+        self.font_name = ""
+        self.font_size = 16
+        self.font_slant = "roman"
+        self.font_weight = "normal"
+        self.saved_coordinates_box_color = "blue"
+        self._get_usable_fonts()
+        self.font_name = self.fonts[0]
+        self.font_object = ctk.CTkFont(family=self.fonts[2], size=16)
+        self.italic_font = ctk.CTkFont(family=self.fonts[2], size=16, slant="italic")
+        self.bold_font = ctk.CTkFont(family=self.fonts[2], size=16, weight="bold")
         self.image_uploaded = False
         self.buttons_enabled = False
         self.subimage_zoom_factor = 4
@@ -165,15 +178,52 @@ class ImageViewer(ctk.CTk):
         self.subimage_center_width = None
         self.subimage_center_height = None
         self.current_color = "red"
-        self.colors = ["blue", "red", "green", "yellow", "cyan", "white", "magenta"]
-        self.color_max = len(self.colors) - 1
+        self.current_appearance = "system"
         self.color_index = 0
         self.boxes = []
         # VIEW
-        self.tab_view = ctk.CTkTabview(master=self)
+        self.tab_view = ctk.CTkTabview(master=self, width=1100, height=900)
         self.tab_view.grid(column=0, row=0, sticky="nsew")
-        self.tab_view.add("Cropper")
-        self.tab_view.add("Settings")
+        self.tab_cropper = self.tab_view.add("Cropper")
+        self.tab_slicer = self.tab_view.add("Slicer")
+        self.tab_settings = self.tab_view.add("Settings")
+        # SETTINGS WIDGETS
+        self.settings_frame = ctk.CTkFrame(self.tab_view.tab("Settings"), width=1200, height=1000)
+        self.settings_frame.grid(column=0, row=0, sticky='nswe')
+        self.set_window_mode_label = ctk.CTkLabel(self.settings_frame, text="Set Window Appearance")
+        self.set_window_mode_label.grid(column=0, row=0)
+        self.set_window_mode_combo = ctk.CTkComboBox(self.settings_frame, values=["system", "dark", "light"], command=self.set_window_appearance)
+        self.set_window_mode_combo.grid(column=1, row=0)
+        self.set_window_mode_combo.bind("<<ComboboxSelected>>", self.set_window_appearance)
+        self.set_font_name_label = ctk.CTkLabel(self.settings_frame, text="Font Family")
+        self.set_font_name_label.grid(column=0, row=1)
+        self.set_font_name_combo = ctk.CTkComboBox(self.settings_frame, values=self.fonts, command=self.set_default_font_name)
+        self.set_font_name_combo.grid(column=1, row=1)
+        self.set_font_size_label = ctk.CTkLabel(self.settings_frame, text="Font Size")
+        self.set_font_size_label.grid(column=0, row=2)
+        self.set_font_size_combo = ctk.CTkComboBox(self.settings_frame, values=[str(x) for x in range(0, 50)], command=self.set_font_size)
+        self.set_font_size_combo.grid(column=1, row=2)
+        self.set_button_color_label = ctk.CTkLabel(self.settings_frame, text="Button Color")
+        self.set_button_color_label.grid(column=0, row=3)
+        self.set_button_color_combo = ctk.CTkComboBox(self.settings_frame, values=self.colors, command=self.set_button_color)
+        self.set_button_color_combo.grid(column=1, row=3)
+        self.set_left_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Left Key")
+        self.set_left_box_motion_key_label.grid(column=0, row=3)
+        self.set_left_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind", command=self.bind_box_move_left_key)
+        self.set_left_box_motion_key_button.grid(column=1, row=3)
+        self.set_right_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Right Key")
+        self.set_right_box_motion_key_label.grid(column=0, row=4)
+        self.set_right_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind", command=self.bind_box_move_right_key)
+        self.set_right_box_motion_key_button.grid(column=1, row=4)
+        self.set_up_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Up Key")
+        self.set_up_box_motion_key_label.grid(column=0, row=5)
+        self.set_up_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind", command=self.bind_box_move_up_key)
+        self.set_up_box_motion_key_button.grid(column=1, row=5)
+        self.set_down_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Down Key")
+        self.set_down_box_motion_key_label.grid(column=0, row=6)
+        self.set_down_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind", command=self.bind_box_move_down_key)
+        self.set_down_box_motion_key_button.grid(column=1, row=6)
+        
         # CROPPER FRAMES
         self.main_frame = ctk.CTkFrame(self.tab_view.tab("Cropper"), width=1200, height=1000)
         self.main_frame.grid(column=0, row=0, sticky='nsew')
@@ -192,21 +242,21 @@ class ImageViewer(ctk.CTk):
         # CROPPER WIDGETS
         self.image_canvas                   = ctk.CTkCanvas(    self.subframe_bottom,    width=400, height=400, borderwidth=0, background="black")
         self.subimage_canvas                = ctk.CTkCanvas(    self.subframe_right_top, width=60,  height=60,  borderwidth=0,)
-        self.load_image_button              = ctk.CTkButton(    self.subframe_right_top,image=Photos.upload_image, text="Load Image", command=self.get_image, border_width=10, font=self.basic_font)
+        self.load_image_button              = ctk.CTkButton(    self.subframe_right_top,image=Photos.upload_image, text="Load Image", command=self.get_image, border_width=10, font=self.font_object)
         self.coordinates_frame              = CoordinatesFrame( self.subframe_right_top)
-        self.move_left_button               = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_left, command=self.move_box_left, font=self.basic_font)
-        self.add_coordinate_button          = ctk.CTkButton(    self.subframe_right_bottom, text="save coordinate", command=self.mark_coordinate, font=self.basic_font)
-        self.move_right_button              = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_right, command=self.move_box_right, font=self.basic_font)
-        self.move_up_button                 = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_up, command=self.move_box_up, font=self.basic_font)
-        self.move_down_button               = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_down, command=self.move_box_down, font=self.basic_font)
-        self.increase_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.plus,  text="box width", command=self.increase_box_width, font=self.basic_font)
-        self.decrease_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box width", command=self.increase_box_width, font=self.basic_font)
-        self.increase_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.plus,  text="box height", command=self.increase_box_height, font=self.basic_font)
-        self.decrease_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box height", command=self.increase_box_height, font=self.basic_font)
-        self.save_crop_button               = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.save,  text="Save Crop", command=self.save_crop, font=self.basic_font)
-        self.save_image_name_label          = ctk.CTkLabel(     self.subframe_right_bottom, text="Image Name: ", font=self.basic_font)
-        self.save_image_name                = ctk.CTkEntry(     self.subframe_right_bottom, placeholder_text="cropped_image", font=self.basic_font)
-        self.save_image_extension_combo     = ctk.CTkComboBox(  self.subframe_right_bottom, values=["PNG", "GIF", "JPG"],  font=self.basic_font)
+        self.move_left_button               = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_left, command=self.move_box_left, font=self.font_object)
+        self.add_coordinate_button          = ctk.CTkButton(    self.subframe_right_bottom, text="save coordinate", command=self.mark_coordinate, font=self.font_object)
+        self.move_right_button              = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_right, command=self.move_box_right, font=self.font_object)
+        self.move_up_button                 = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_up, command=self.move_box_up, font=self.font_object)
+        self.move_down_button               = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_down, command=self.move_box_down, font=self.font_object)
+        self.increase_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.plus,  text="box width", command=self.increase_box_width, font=self.font_object)
+        self.decrease_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box width", command=self.increase_box_width, font=self.font_object)
+        self.increase_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.plus,  text="box height", command=self.increase_box_height, font=self.font_object)
+        self.decrease_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box height", command=self.increase_box_height, font=self.font_object)
+        self.save_crop_button               = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.save,  text="Save Crop", command=self.save_crop, font=self.font_object)
+        self.save_image_name_label          = ctk.CTkLabel(     self.subframe_right_bottom, text="Image Name: ", font=self.font_object)
+        self.save_image_name                = ctk.CTkEntry(     self.subframe_right_bottom, placeholder_text="cropped_image", font=self.font_object)
+        self.save_image_extension_combo     = ctk.CTkComboBox(  self.subframe_right_bottom, values=["PNG", "GIF", "JPG"],  font=self.font_object)
         # placement
         self.image_canvas.grid(                 column=0, row=0, padx=(2, 2), pady=(2,2))
         self.subimage_canvas.grid(              row=4, column=2, padx=(20, 2), pady=(10,10), sticky='w')
@@ -234,13 +284,181 @@ class ImageViewer(ctk.CTk):
         self.disable_until_image_loaded()
         self.mainloop()
     
+    def wait_key_and_bind(self, action, button: ctk.CTkButton, original_button: ctk.CTkButton):
+        """
+        Listens for a key press event and binds it to the specified button.
+
+        Args:
+            action: The function to be executed when the key is pressed.
+            button (ctk.CTkButton): The button to bind the key to.
+            original_button (ctk.CTkButton): The original button to reset the text after binding.
+
+        Returns:
+            None
+        """
+        
+        def key_press_event(event):
+            key = event.keysym
+            button.configure(text=key)
+            self.unbind("<Key>")
+            self.bind(f"<Key-{key}>", action)
+            print("binded")
+            original_button.configure(text="Bind") 
+            
+        self.bind("<Key>", key_press_event)
+    
+    def bind_box_move_left_key(self, *args):
+        """
+        Binds the left box motion key by waiting for a key press event and updating the corresponding button.
+
+        Args:
+            *args: Variable length argument list.
+
+        Returns:
+            None
+        """
+        self.set_left_box_motion_key_button.configure(
+            command=lambda: self.wait_key_and_bind(
+                self.move_box_left, 
+                self.move_left_button, 
+                self.set_left_box_motion_key_button), 
+            text="Press Any Key To Bind It")
+    
+    def bind_box_move_up_key(self, *args):
+        """
+        Binds the up box motion key by waiting for a key press event and updating the corresponding button.
+
+        Args:
+            *args: Variable length argument list.
+
+        Returns:
+            None
+        """
+        self.set_up_box_motion_key_button.configure(
+            command=lambda: self.wait_key_and_bind(
+                self.move_box_up, 
+                self.move_up_button, 
+                self.set_up_box_motion_key_button), 
+            text="Press Any Key To Bind It")
+    
+    def bind_box_move_right_key(self, *args):
+        """
+        Binds the right box motion key by waiting for a key press event and updating the corresponding button.
+
+        Args:
+            *args: Variable length argument list.
+
+        Returns:
+            None
+        """
+        self.set_left_box_motion_key_button.configure(
+            command=lambda: self.wait_key_and_bind(
+                self.move_box_right, 
+                self.move_right_button, 
+                self.set_right_box_motion_key_button), 
+            text="Press Any Key To Bind It")
+    
+    
+    def bind_box_move_down_key(self, *args):
+        """
+        Binds the down box motion key by waiting for a key press event and updating the corresponding button.
+
+        Args:
+            *args: Variable length argument list.
+
+        Returns:
+            None
+        """
+        self.set_left_box_motion_key_button.configure(
+            command=lambda: self.wait_key_and_bind(
+                self.move_box_down, 
+                self.move_down_button, 
+                self.set_down_box_motion_key_button), 
+            text="Press Any Key To Bind It")
+    
+    
+    def set_button_color(self, *args):
+        self.button_color = self.set_button_color_combo.get()
+        self.load_image_button.configure(fg_color=self.button_color)
+        self.move_left_button.configure(fg_color=self.button_color)
+        self.add_coordinate_button.configure(fg_color=self.button_color)
+        self.move_right_button.configure(fg_color=self.button_color)
+        self.move_up_button.configure(fg_color=self.button_color)
+        self.move_down_button.configure(fg_color=self.button_color)
+        self.increase_box_width_button.configure(fg_color=self.button_color)
+        self.decrease_box_width_button.configure(fg_color=self.button_color)
+        self.increase_box_height_button.configure(fg_color=self.button_color)
+        self.decrease_box_height_button.configure(fg_color=self.button_color)
+        self.save_crop_button.configure(fg_color=self.button_color)
+        self.coordinates_frame.save_button.configure(fg_color=self.button_color)
+        
+    def set_font_size(self, *args):
+        self.font_size = int(self.set_font_size_combo.get())
+        self.set_font()
+    
+    def get_windows_fonts(self):
+        shell = win32com.client.Dispatch("Shell.Application")
+        fonts_folder = shell.Namespace(0x14)  # 0x14 represents the Fonts folder
+        for item in fonts_folder.Items():
+            self.fonts.append(item.Name)
+    
+    def get_linux_fonts(self):
+        try:
+            output = subprocess.check_output(['fc-list'])
+            fonts = output.decode().splitlines()
+            return fonts
+        except subprocess.CalledProcessError:
+            print("Error: Unable to retrieve fonts.")
+            return []
+    
+    def get_mac_fonts(self):
+        # Get the paths to the font files on your Mac
+        font_paths = ttLib.getInstalledFonts()
+        for path in font_paths:
+            try:
+                font = ttLib.TTFont(path)
+                font_name = str(font['name'].getName(1, 3, 1, 1033))
+                # Add the font name to the list
+                self.fonts.append(font_name)
+
+            except Exception as e:
+                print(f"Error processing font: {path}")
+                print(e)
+        
+    def set_default_font_name(self, *args):
+        self.font_name = self.set_font_name_combo.get()
+        print(self.font_name)
+        self.set_font()
+        
+    def set_font(self):
+        self.font_object = ctk.CTkFont(family=self.font_name, size=self.font_size, weight=self.font_weight, slant=self.font_slant)
+        self.load_image_button.configure(font=self.font_object)
+        self.move_left_button.configure(font=self.font_object)
+        self.add_coordinate_button.configure(font=self.font_object)
+        self.move_right_button.configure(font=self.font_object)
+        self.move_up_button.configure(font=self.font_object)
+        self.move_down_button.configure(font=self.font_object)
+        self.increase_box_width_button.configure(font=self.font_object)
+        self.decrease_box_width_button.configure(font=self.font_object)
+        self.increase_box_height_button.configure(font=self.font_object)
+        self.decrease_box_height_button.configure(font=self.font_object)
+        self.save_crop_button.configure(font=self.font_object)
+        self.save_image_name_label.configure(font=self.font_object)
+        self.save_image_name.configure(font=self.font_object)
+        self.save_image_extension_combo.configure(font=self.font_object)
+        
+    def set_window_appearance(self, *args):
+        self.current_appearance = self.set_window_mode_combo.get()
+        ctk.set_appearance_mode(self.current_appearance)
+    
     def _get_usable_fonts(self) -> None:
         if sys.platform.startswith("w"):
-            return self.windows_fonts
+            self.get_windows_fonts()
         elif sys.platform.startswith('l'):
-            return self.linux_fonts
+            self.get_linux_fonts()
         elif sys.platform.startswith('d'):
-            return self.mac_fonts
+            return self.get_mac_fonts()
+        print(self.fonts)
     
     def disable_until_image_loaded(self) -> None:
         """ Disables the buttons that would cause harm if pressed before image uploaded
@@ -331,7 +549,7 @@ class ImageViewer(ctk.CTk):
             self.recty = self.image_height
         self.refresh_image()
     
-    def move_box_left(self) -> None:
+    def move_box_left(self, *args) -> None:
         """
         moves the select box one width length to the left, 
         if its off the screen goes to the previous row and at the end.
@@ -371,7 +589,7 @@ class ImageViewer(ctk.CTk):
                 self.enabled_after_image_loaded()
                 self.buttons_enabled = True
     
-    def set_image(self, image_path):
+    def set_image(self, image_path: str):
         """ takes the used filepath and create the main image and subimages
         then refreshes the images
 
@@ -419,7 +637,7 @@ class ImageViewer(ctk.CTk):
         self.subimage_canvas.create_image(self.subimage_canvas_width*self.subimage_zoom_factor, self.subimage_canvas_height*self.subimage_zoom_factor, image=self.sub_photoimage)
         self.subimage_canvas.configure(height=self.recth*self.subimage_zoom_factor, width=self.rectw*self.subimage_zoom_factor)
     
-    def draw_all_rectangles(self):
+    def draw_all_rectangles(self) -> None:
         """
         draws all the rectanges including previously selected and what not
         """
@@ -435,7 +653,7 @@ class ImageViewer(ctk.CTk):
         self.image_canvas.create_rectangle(self.rectx-1,  self.recty+1, self.rectx+self.rectw+1, self.recty+self.recth+1,  outline=self.second_color)
         #self.image_canvas.create_line(self.rectx,  self.recty, 0, 0)
         #self.image_canvas.create_line(self.rectx+self.rectw, self.recty+self.recth, self.image_width, self.image_width)
-        self.image_canvas.after(2000, self.draw_rectangle)
+        self.image_canvas.after(1000, self.draw_rectangle)
         
     
     def draw_saved_coordinates(self):
@@ -443,7 +661,7 @@ class ImageViewer(ctk.CTk):
         iterates over the saved boxes and draws them on the main image
         """
         for box in self.boxes:
-            rect = self.image_canvas.create_rectangle(box[0],  box[1], box[0]+box[2], box[1]+box[3],  outline="blue")
+            rect = self.image_canvas.create_rectangle(box[0],  box[1], box[0]+box[2], box[1]+box[3],  outline=self.saved_coordinates_box_color)
     
         
     def get_next_color(self):
@@ -456,7 +674,7 @@ class ImageViewer(ctk.CTk):
             self.color_index = 0
         self.current_color = self.colors[self.color_index]
     
-    def image_to_photo(self, image_path):
+    def image_to_photo(self, image_path: str) -> tuple:
         """
         takes an image path and returns a ImageTk.PhotoImage from it
 
@@ -474,7 +692,7 @@ class ImageViewer(ctk.CTk):
         img.close()
         return im, rimgdata, width, height, width//2, height//2   
     
-    def make_photo(self, image_path):
+    def make_photo(self, image_path: str) -> tuple:
         """
         better version of image_to_photo
 
@@ -491,7 +709,10 @@ class ImageViewer(ctk.CTk):
         img.close()
         return im, width, height
 
-
+class Application:
+    def __init__(self) -> None:
+        self.imageviewer = ImageViewer()
+        
 def main():
     image_viewer = ImageViewer()
      
