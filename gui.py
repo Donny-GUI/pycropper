@@ -5,7 +5,6 @@ import webcolors
 from PIL import ImageTk, Image
 import json
 import sys
-from images import Photos
 
 OSX = sys.platform
 
@@ -43,7 +42,7 @@ class CoordinateFrame(ctk.CTkFrame):
         self.photoimage = ctk.CTkCanvas(self, width=w, height=h)
         self.photoimage.grid(column=3, row=0, pady=2, padx=2)
         self.photoimage.create_image(w//2, h//2, image=self.sub_photoimage)
-        self.remove_button = ctk.CTkButton(self, image=Photos.minus, text="", width=30, height=30)
+        self.remove_button = ctk.CTkButton(self, text="-", width=30, height=30)
         self.remove_button.grid(column=4, row=0, rowspan=3, pady=(2,2), padx=(40,2))
         self.remove_button.bind("Button-1", self.remove_me)
     
@@ -133,7 +132,10 @@ class ImageViewer(ctk.CTk):
         "Cantarell",
     ]
     def __init__(self) -> None:
+        
         super().__init__()
+        # sorry
+        from images import Photos
         
         # VARIABLES
         self.usable_fonts = self._get_usable_fonts()
@@ -192,11 +194,11 @@ class ImageViewer(ctk.CTk):
         self.subimage_canvas                = ctk.CTkCanvas(    self.subframe_right_top, width=60,  height=60,  borderwidth=0,)
         self.load_image_button              = ctk.CTkButton(    self.subframe_right_top,image=Photos.upload_image, text="Load Image", command=self.get_image, border_width=10, font=self.basic_font)
         self.coordinates_frame              = CoordinatesFrame( self.subframe_right_top)
-        self.move_left_button               = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_left_width, text= "", image=Photos.arrow_left, command=self.move_box_left, font=self.basic_font)
+        self.move_left_button               = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_left, command=self.move_box_left, font=self.basic_font)
         self.add_coordinate_button          = ctk.CTkButton(    self.subframe_right_bottom, text="save coordinate", command=self.mark_coordinate, font=self.basic_font)
-        self.move_right_button              = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_right_width, text= "", image=Photos.arrow_right, command=self.move_box_right, font=self.basic_font)
-        self.move_up_button                 = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_up_width, text= "", image=Photos.arrow_up, command=self.move_box_up, font=self.basic_font)
-        self.move_down_button               = ctk.CTkButton(    self.subframe_right_bottom, width=self.arrow_down_width, text= "", image=Photos.arrow_down, command=self.move_box_down, font=self.basic_font)
+        self.move_right_button              = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_right, command=self.move_box_right, font=self.basic_font)
+        self.move_up_button                 = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_up, command=self.move_box_up, font=self.basic_font)
+        self.move_down_button               = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_down, command=self.move_box_down, font=self.basic_font)
         self.increase_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.plus,  text="box width", command=self.increase_box_width, font=self.basic_font)
         self.decrease_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box width", command=self.increase_box_width, font=self.basic_font)
         self.increase_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.plus,  text="box height", command=self.increase_box_height, font=self.basic_font)
@@ -205,7 +207,7 @@ class ImageViewer(ctk.CTk):
         self.save_image_name_label          = ctk.CTkLabel(     self.subframe_right_bottom, text="Image Name: ", font=self.basic_font)
         self.save_image_name                = ctk.CTkEntry(     self.subframe_right_bottom, placeholder_text="cropped_image", font=self.basic_font)
         self.save_image_extension_combo     = ctk.CTkComboBox(  self.subframe_right_bottom, values=["PNG", "GIF", "JPG"],  font=self.basic_font)
-        
+        # placement
         self.image_canvas.grid(                 column=0, row=0, padx=(2, 2), pady=(2,2))
         self.subimage_canvas.grid(              row=4, column=2, padx=(20, 2), pady=(10,10), sticky='w')
         self.load_image_button.grid(            column=2, row=0, padx=(20, 20), pady=(5,5))
@@ -490,6 +492,9 @@ class ImageViewer(ctk.CTk):
         return im, width, height
 
 
+def main():
+    image_viewer = ImageViewer()
+     
 if __name__ == '__main__':
-    ImageViewer()
+    main()
     

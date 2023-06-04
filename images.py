@@ -22,7 +22,7 @@ class ImageDecoder:
     @staticmethod
     def photo_from_image(image_object):
         width, height = image_object.size
-        image_object.convert("RBG")
+        image_object.convert("RGB")
         return ImageTk.PhotoImage(image_object, size=(width, height))
     
     @staticmethod
