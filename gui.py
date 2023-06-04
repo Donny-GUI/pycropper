@@ -96,18 +96,6 @@ class SliceWindow(ctk.CTk):
         super().__init__()    
 
   
-class BindWindow(ctk.CTkToplevel):
-    def __init__(self, button, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.geometry("400x300")
-        self.button = button
-        self.label = ctk.CTkLabel(self, text="Press Any Key to Bind it")
-        self.label.pack(padx=20, pady=20)
-        self.bind("<ButtonPress>", self.button_pressed)
-
-    def button_pressed(self, event):
-        self.button.bind()
-
 class ImageViewer(ctk.CTk):
     colors = list(webcolors.CSS3_NAMES_TO_HEX.keys())
     color_max = len(colors) - 1
