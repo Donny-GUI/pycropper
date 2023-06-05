@@ -7,6 +7,8 @@ import sys
 import win32com.client
 from fontTools import ttLib
 from coordinateframe import CoordinatesFrame
+import time
+
 
   
 class ImageViewer(ctk.CTk):
@@ -458,53 +460,59 @@ class SettingsTab:
         self.set_button_color_combo.grid(column=1, row=3)
         self.set_left_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Left Key")
         self.set_left_box_motion_key_label.grid(column=0, row=3)
-        self.set_left_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind", command=self.wait_key_and_bind)
+        self.set_left_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind")
         self.set_left_box_motion_key_button.grid(column=1, row=3)
+        self.set_left_box_motion_key_button.bind("<Button-1>",  lambda left_event: self.bind_key("left"))
         self.set_right_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Right Key")
         self.set_right_box_motion_key_label.grid(column=0, row=4)
-        self.set_right_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind", command= self.wait_key_and_bind)
+        self.set_right_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind")
         self.set_right_box_motion_key_button.grid(column=1, row=4)
+        self.set_right_box_motion_key_button.bind("<Button-1>",  lambda right_event: self.bind_key("right"))
         self.set_up_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Up Key")
         self.set_up_box_motion_key_label.grid(column=0, row=5)
-        self.set_up_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind", command= self.wait_key_and_bind)
+        self.set_up_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind")
         self.set_up_box_motion_key_button.grid(column=1, row=5)
+        self.set_up_box_motion_key_button.bind("<Button-1>",  lambda up_event: self.bind_key("up"))
         self.set_down_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Down Key")
         self.set_down_box_motion_key_label.grid(column=0, row=6)
-        self.set_down_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind", command=self.wait_key_and_bind)
+        self.set_down_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind")
         self.set_down_box_motion_key_button.grid(column=1, row=6)  
-        self.event_index = 0
-        self.event_info = {}
+        self.set_down_box_motion_key_button.bind("<Button-1>",  lambda down_event: self.bind_key("down"))
         self.bind_event_data = {}
+        self.key_pressed = ""
+        self.current_key = ""
+
+        self.master.after(2000, self.set_bind_event_data)
     
-    def wait_key_and_bind(self, *args):
-        """
-        Listens for a key press event and binds it to the specified button.
-        Returns:
-            None
-        """
-        print(args)
-        self.bind_event_data = {
-            "left": (self.master.cropper_tab.move_left_button, self.set_left_box_motion_key_button, self.master.cropper_tab.move_box_left), 
-            "right":(self.master.cropper_tab.move_right_button, self.set_right_box_motion_key_button, self.master.cropper_tab.move_box_right),
-            "up": (self.master.cropper_tab.move_up_button, self.set_up_box_motion_key_button, self.master.cropper_tab.move_box_up), 
-            "down":(self.master.cropper_tab.move_down_button, self.set_down_box_motion_key_button, self.master.cropper_tab.move_box_down)
-        } 
-        self.bind_event_data[key][1].bind("<Key>", lambda e: self.key_press_event(e, key))
-    
-    def key_press_event(self, e, key):
+    def set_bind_event_data(self):
         self.bind_event_data = {
             "left": (self.master.cropper_tab.move_left_button, self.set_left_box_motion_key_button, self.master.cropper_tab.move_box_left), 
             "right":(self.master.cropper_tab.move_right_button, self.set_right_box_motion_key_button, self.master.cropper_tab.move_box_right),
             "up": (self.master.cropper_tab.move_up_button, self.set_up_box_motion_key_button, self.master.cropper_tab.move_box_up), 
             "down":(self.master.cropper_tab.move_down_button, self.set_down_box_motion_key_button, self.master.cropper_tab.move_box_down)
         }
-        kk = e.keysym
-        self.bind_event_data[key][0].configure(text=kk)
-        self.bind_event_data[key][0].bind(f"<Key-{kk}>", self.bind_event_data[key][2])
-        self.bind_event_data[key][1].unbind("<Key>")
-        self.bind_event_data[key][1].configure(text="Bind") 
-        print("binded")
+        self.bind_keys = [x for x in list(self.bind_event_data.keys())]
+    
 
+        
+    def bind_key(self, *args):
+        key = args[0]
+        self.current_key = key
+        self.bind_event_data[key][1].configure(text="Press any key....")
+        [self.bind_event_data[bindkey][1].configure(state="disabled") for bindkey in self.bind_keys if bindkey != key]
+        self.master.bind('<KeyPress>', self.keypress_event)
+
+    
+    def keypress_event(self, event):
+        print(event)
+        self.key_pressed = event.keysym
+        self.bind_event_data[self.current_key][0].configure(text=self.key_pressed)
+        self.master.bind(f"<{self.key_pressed}>", self.bind_event_data[self.current_key][2])
+        self.master.unbind("<KeyPress>")
+        [self.bind_event_data[bindkey][1].configure(state="normal") for bindkey in self.bind_keys]
+        self.bind_event_data[self.current_key][1].configure(text=f"Bound {self.key_pressed}")
+        
+        
     def set_button_color(self, *args):
         """ 
         Set all the buttons to the color in the set_button_color_combo
