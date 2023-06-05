@@ -7,9 +7,65 @@ import sys
 import win32com.client
 from fontTools import ttLib
 from coordinateframe import CoordinatesFrame
-import time
 
 
+    
+    
+class LabeledValue:
+    def __init__(self, master, name: str="No Label", value:str="No Value"):
+        self.frame = ctk.CTkFrame(master, corner_radius=5)
+        self.corner_rad = 50
+        self.pad_right = 10
+        self.name = name
+        self.value = value
+        self.name_label = ctk.CTkLabel(self.frame, text=self.name, corner_radius=50)
+        self.value_label = ctk.CTkLabel(self.frame, text=self.value, corner_radius=self.corner_rad)
+        self.name_label.grid(column=0, row=0, padx=(5,3), pady=2, sticky="ew")
+        self.value_label.grid(column=1, row=0, padx=(3,5), pady=2, sticky='ew')
+        self.attention_index = 0
+    
+    def grid(self, **kwargs):
+        self.frame.grid(**kwargs)
+    
+    def show(self):
+        self.name_label.grid(column=0, row=0, padx=(5,3), pady=2, sticky="ew")
+        self.value_label.grid(column=1, row=0, padx=(3,5), pady=2, sticky='ew')
+    
+    def attention_value(self):
+        self.highlight_value()
+        self.frame.after(500, self.unhighlight_value)
+
+    def reset_corner_rad(self):
+        self.corner_rad = 50
+        
+    def attention_name(self):
+        self.highlight_name()
+        self.frame.after(500, self.unhighlight_name)
+    
+    def unhighlight_value(self):
+        self.frame.configure(fg_color="transparent")
+    
+    def unhighlight_name(self):
+        self.name_label.configure(fg_color="transparent")
+        
+    def highlight_value(self, color="green"):
+        self.frame.configure(fg_color=color)
+    
+    def highlight_name(self, color="green"):
+        self.name_label.configure(fg_color=color)
+    
+    def hide(self):
+        self.name_label.grid_forget()
+        self.value_label.grid_forget()
+        
+    def set_value(self, value: any):
+        self.value = value
+        self.value_label.configure(text=str(self.value))
+        
+    def set_name(self, name: str):
+        self.name = name
+        self.name_label.configure(text=self.name)
+        
   
 class ImageViewer(ctk.CTk):
     colors = list(webcolors.CSS3_NAMES_TO_HEX.keys())
@@ -94,13 +150,22 @@ class CropperTab:
         self.move_up_button                 = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_up, command=self.move_box_up, font=self.font_object)
         self.move_down_button               = ctk.CTkButton(    self.subframe_right_bottom, width=60, text= "", image=Photos.arrow_down, command=self.move_box_down, font=self.font_object)
         self.increase_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.plus,  text="box width", command=self.increase_box_width, font=self.font_object)
-        self.decrease_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box width", command=self.increase_box_width, font=self.font_object)
+        self.decrease_box_width_button      = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box width", command=self.decrease_box_width, font=self.font_object)
         self.increase_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.plus,  text="box height", command=self.increase_box_height, font=self.font_object)
-        self.decrease_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box height", command=self.increase_box_height, font=self.font_object)
+        self.decrease_box_height_button     = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.minus, text="box height", command=self.decrease_box_height, font=self.font_object)
         self.save_crop_button               = ctk.CTkButton(    self.subframe_right_bottom, image=Photos.save,  text="Save Crop", command=self.save_crop, font=self.font_object)
         self.save_image_name_label          = ctk.CTkLabel(     self.subframe_right_bottom, text="Image Name: ", font=self.font_object)
         self.save_image_name                = ctk.CTkEntry(     self.subframe_right_bottom, placeholder_text="cropped_image", font=self.font_object)
         self.save_image_extension_combo     = ctk.CTkComboBox(  self.subframe_right_bottom, values=["PNG", "GIF", "JPG"],  font=self.font_object)
+        
+        self.box_width_labeled_value  = LabeledValue(self.main_frame, name="Box Width", value=str(16))
+        self.box_height_labeled_value = LabeledValue(self.main_frame, name="Box Height", value=str(16))
+        
+        #self.box_height_label               = ctk.CTkLabel(     self.subframe_right_bottom, text="Box Height", font=self.font_object)
+        #self.box_height_label_value         = ctk.CTkLabel(     self.subframe_right_bottom, text="16", font=self.font_object)
+        #self.box_width_label                = ctk.CTkLabel(      self.subframe_right_bottom, text="Box Width", font=self.font_object)
+        #self.box_width_label_value          = ctk.CTkLabel(      self.subframe_right_bottom, text="16", font=self.font_object)
+        
         # placement
         self.image_canvas.grid(                 column=0, row=0, padx=(2, 2), pady=(2,2))
         self.subimage_canvas.grid(              row=4, column=2, padx=(20, 2), pady=(10,10), sticky='w')
@@ -118,8 +183,10 @@ class CropperTab:
         self.save_crop_button.grid(             column=0, row=3, padx=(2, 2), pady=(2, 2))
         self.save_image_name_label.grid(        column=1, row=3, padx=(2, 2), pady=(2, 2))
         self.save_image_name.grid(              column=2, row=3, padx=(2, 2), pady=(2, 2))
-        self.save_image_extension_combo.grid(   column=3, row=3)
         
+        self.box_width_labeled_value.grid(column=1, row=4, sticky='se')
+        self.box_height_labeled_value.grid(column=2, row=4, sticky='s')
+
         self.save_image_name.insert(0, "cropped_image")
         
         self.save_image_extension_combo.bind("<Button-1>", lambda cbo: self.set_save_extension())
@@ -201,7 +268,7 @@ class CropperTab:
         
         self.load_image_button.configure(border_width=0)
     
-    def mark_coordinate(self) -> None:
+    def mark_coordinate(self, *args) -> None:
         """ 
         if the main image is set, creates a box of the current selector coordinates and appends the box to the list of boxes,
         then adds the coordinates to the coordinates frame
@@ -218,7 +285,7 @@ class CropperTab:
         self.save_image_extension = self.save_image_extension_combo.get()
         self.save_image_extension_lower = "." + self.save_image_extension.lower()
         
-    def save_crop(self) -> None:
+    def save_crop(self, *args) -> None:
         """ 
         opens the main image and crops it, gets the extension used and makes the filename,
         then saves the file that is cropped as the given filename
@@ -229,19 +296,41 @@ class CropperTab:
         self.save_image_extension_filename = self.save_image_name.get() + self.save_image_extension_lower
         self.cropped_image.save(fp=self.save_image_extension_filename, format=self.save_image_extension)
     
-    def increase_box_width(self) -> None:
+    def increase_box_width(self, *args) -> None:
         """ 
         increases the rectange width of the selector and refreshes the image
         """
         self.rectw +=1
         self.refresh_image()
+        self.box_width_labeled_value.set_value(self.rectw)
+        self.box_width_labeled_value.attention_value()
     
-    def increase_box_height(self) -> None:
+    def decrease_box_width(self, *args) -> None:
+        """ 
+        decreases the rectange width of the selector and refreshes the image
+        """
+        self.rectw = self.rectw - 1
+        self.refresh_image()
+        self.box_width_labeled_value.set_value(self.rectw)
+        self.box_width_labeled_value.attention_value()
+    
+    def increase_box_height(self, *args) -> None:
         """
         increases the rectange height of the selector and refreshes the image
         """
         self.recth +=1
         self.refresh_image()
+        self.box_height_labeled_value.set_value(self.recth)
+        self.box_height_labeled_value.attention_value()
+    
+    def decrease_box_height(self, *args) -> None:
+        """
+        decreases the rectange height of the selector and refreshes the image
+        """
+        self.recth = self.recth - 1
+        self.refresh_image()
+        self.box_height_labeled_value.set_value(self.recth)
+        self.box_height_labeled_value.attention_value()
         
     def move_box_down(self, *args) -> None:
         """
@@ -287,7 +376,7 @@ class CropperTab:
             self.recty = 0
         self.refresh_image()
         
-    def get_image(self) -> None:
+    def get_image(self, *args) -> None:
         """
         called when the browse file has achieved completion. sets the flag for the buttons to be 
         set to undisabled. sets the flag for the buttons to not be checked again
@@ -301,7 +390,7 @@ class CropperTab:
                 self.enabled_after_image_loaded()
                 self.buttons_enabled = True
     
-    def set_image(self, image_path: str):
+    def set_image(self, image_path: str, *args):
         """ 
         takes the used filepath and create the main image and subimages
         then refreshes the images
@@ -314,21 +403,21 @@ class CropperTab:
         self.reset_box_location()
         self.refresh_image()
     
-    def reset_box_location(self) -> None:
+    def reset_box_location(self, *args) -> None:
         """
         sets the rect x and y coordinate to 0
         """
         self.rectx = 0
         self.recty = 0
     
-    def calculate_subimage_width_height(self) -> None:
+    def calculate_subimage_width_height(self, *args) -> None:
         """
         calculates half of the subimage using floor division or regular division if mod 2
         """
         self.subimage_canvas_width = self.rectw/2 if self.rectw%2==0 else self.rectw//2
         self.subimage_canvas_height = self.recth/2 if self.recth%2==0 else self.recth//2
     
-    def refresh_image(self) -> None:
+    def refresh_image(self, *args) -> None:
         """
         refreshes the cursor, the image, the subimage and draws the cursor and rectangles selected
         """
@@ -338,7 +427,7 @@ class CropperTab:
         self.draw_subimage()
         self.draw_all_rectangles()
     
-    def draw_subimage(self) -> None:
+    def draw_subimage(self, *args) -> None:
         """
         draws the subimage in its canvas. First by opening the image, then getting the selector location as an image
         """
@@ -350,7 +439,7 @@ class CropperTab:
         self.subimage_canvas.create_image(self.subimage_canvas_width*self.subimage_zoom_factor, self.subimage_canvas_height*self.subimage_zoom_factor, image=self.sub_photoimage)
         self.subimage_canvas.configure(height=self.recth*self.subimage_zoom_factor, width=self.rectw*self.subimage_zoom_factor)
     
-    def draw_all_rectangles(self) -> None:
+    def draw_all_rectangles(self, *args) -> None:
         """
         draws all the rectanges including previously selected and what not
         """
@@ -369,7 +458,7 @@ class CropperTab:
         self.image_canvas.after(1000, self.draw_rectangle)
         
     
-    def draw_saved_coordinates(self):
+    def draw_saved_coordinates(self, *args):
         """
         iterates over the saved boxes and draws them on the main image
         """
@@ -377,7 +466,7 @@ class CropperTab:
             rect = self.image_canvas.create_rectangle(box[0],  box[1], box[0]+box[2], box[1]+box[3],  outline=self.saved_coordinates_box_color)
     
         
-    def get_next_color(self):
+    def get_next_color(self, *args):
         """
         gets the next color in the sequence, also sets the secondary color to the last color
         """
@@ -441,58 +530,97 @@ class SettingsTab:
         self.master = master
         self.settings_frame = ctk.CTkFrame(self.master.tab_view.tab("Settings"), width=1200, height=1000)
         self.settings_frame.grid(column=0, row=0, sticky='nswe')
+        
         self.set_window_mode_label = ctk.CTkLabel(self.settings_frame, text="Set Window Appearance")
-        self.set_window_mode_label.grid(column=0, row=0)
+        self.set_window_mode_label.grid(column=0, row=0, padx=2, pady=2)
         self.set_window_mode_combo = ctk.CTkComboBox(self.settings_frame, values=["system", "dark", "light"], command=self.set_window_appearance)
-        self.set_window_mode_combo.grid(column=1, row=0)
+        self.set_window_mode_combo.grid(column=1, row=0, padx=2, pady=2)
         self.set_window_mode_combo.bind("<<ComboboxSelected>>", self.set_window_appearance)
         self.set_font_name_label = ctk.CTkLabel(self.settings_frame, text="Font Family")
-        self.set_font_name_label.grid(column=0, row=1)
-        self.set_font_name_combo = ctk.CTkComboBox(self.settings_frame, values=self.fonts, command=self.set_default_font_name)
-        self.set_font_name_combo.grid(column=1, row=1)
+        self.set_font_name_label.grid(column=0, row=1, padx=2, pady=2)
+        self.set_font_name_combo = ctk.CTkComboBox(self.settings_frame, values=[], command=self.set_default_font_name)
+        self.set_font_name_combo.grid(column=1, row=1, padx=2, pady=2)
         self.set_font_size_label = ctk.CTkLabel(self.settings_frame, text="Font Size")
-        self.set_font_size_label.grid(column=0, row=2)
+        self.set_font_size_label.grid(column=0, row=2, padx=2, pady=2)
         self.set_font_size_combo = ctk.CTkComboBox(self.settings_frame, values=[str(x) for x in range(0, 50)], command=self.set_font_size)
-        self.set_font_size_combo.grid(column=1, row=2)
+        self.set_font_size_combo.grid(column=1, row=2, padx=2, pady=2)
         self.set_button_color_label = ctk.CTkLabel(self.settings_frame, text="Button Color")
-        self.set_button_color_label.grid(column=0, row=3)
+        self.set_button_color_label.grid(column=0, row=3, padx=2, pady=2)
         self.set_button_color_combo = ctk.CTkComboBox(self.settings_frame, values=self.master.colors, command=self.set_button_color)
-        self.set_button_color_combo.grid(column=1, row=3)
+        self.set_button_color_combo.grid(column=1, row=3, padx=2, pady=2)
         self.set_left_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Left Key")
-        self.set_left_box_motion_key_label.grid(column=0, row=3)
+        self.set_left_box_motion_key_label.grid(column=0, row=3, padx=2, pady=2)
         self.set_left_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind")
-        self.set_left_box_motion_key_button.grid(column=1, row=3)
+        self.set_left_box_motion_key_button.grid(column=1, row=3, padx=2, pady=2)
         self.set_left_box_motion_key_button.bind("<Button-1>",  lambda left_event: self.bind_key("left"))
         self.set_right_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Right Key")
-        self.set_right_box_motion_key_label.grid(column=0, row=4)
+        self.set_right_box_motion_key_label.grid(column=0, row=4, padx=2, pady=2)
         self.set_right_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind")
-        self.set_right_box_motion_key_button.grid(column=1, row=4)
+        self.set_right_box_motion_key_button.grid(column=1, row=4, padx=2, pady=2)
         self.set_right_box_motion_key_button.bind("<Button-1>",  lambda right_event: self.bind_key("right"))
         self.set_up_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Up Key")
-        self.set_up_box_motion_key_label.grid(column=0, row=5)
+        self.set_up_box_motion_key_label.grid(column=0, row=5, padx=2, pady=2)
         self.set_up_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind")
-        self.set_up_box_motion_key_button.grid(column=1, row=5)
+        self.set_up_box_motion_key_button.grid(column=1, row=5, padx=2, pady=2)
         self.set_up_box_motion_key_button.bind("<Button-1>",  lambda up_event: self.bind_key("up"))
         self.set_down_box_motion_key_label = ctk.CTkLabel(self.settings_frame, text="Move Box Down Key")
-        self.set_down_box_motion_key_label.grid(column=0, row=6)
+        self.set_down_box_motion_key_label.grid(column=0, row=6, padx=2, pady=2)
         self.set_down_box_motion_key_button = ctk.CTkButton(self.settings_frame, text="Bind")
-        self.set_down_box_motion_key_button.grid(column=1, row=6)  
+        self.set_down_box_motion_key_button.grid(column=1, row=6, padx=2, pady=2)  
         self.set_down_box_motion_key_button.bind("<Button-1>",  lambda down_event: self.bind_key("down"))
+        self.set_save_coord_label = ctk.CTkLabel(self.settings_frame, text="Move Box Down Key")
+        self.set_save_coord_label.grid(column=0, row=7, padx=2, pady=2)
+        self.set_save_coord_button = ctk.CTkButton(self.settings_frame, text="Bind")
+        self.set_save_coord_button.grid(column=1, row=7, padx=2, pady=2)  
+        self.set_save_coord_button.bind("<Button-1>",  lambda down_event: self.bind_key("save"))
+        
+        self.set_increase_box_width_label = ctk.CTkLabel(self.settings_frame, text="Increase Box Width Binding")
+        self.set_increase_box_width_label.grid(column=0, row=8, padx=2, pady=2)
+        self.set_increase_box_width_button = ctk.CTkButton(self.settings_frame, text="Bind")
+        self.set_increase_box_width_button.grid(column=1, row=8, padx=2, pady=2)  
+        self.set_increase_box_width_button.bind("<Button-1>",  lambda down_event: self.bind_key("bwidth+"))
+        self.set_decrease_box_width_label = ctk.CTkLabel(self.settings_frame, text="Decrease Box Width Binding")
+        self.set_decrease_box_width_label.grid(column=0, row=9, padx=2, pady=2)
+        self.set_decrease_box_width_button = ctk.CTkButton(self.settings_frame, text="Bind")
+        self.set_decrease_box_width_button.grid(column=1, row=9, padx=2, pady=2)  
+        self.set_decrease_box_width_button.bind("<Button-1>",  lambda down_event: self.bind_key("bwidth-"))
+        
+        self.set_increase_box_height_label = ctk.CTkLabel(self.settings_frame, text="Increase Box Height Binding")
+        self.set_increase_box_height_label.grid(column=0, row=10, padx=2, pady=2)
+        self.set_increase_box_height_button = ctk.CTkButton(self.settings_frame, text="Bind")
+        self.set_increase_box_height_button.grid(column=1, row=10, padx=2, pady=2)  
+        self.set_increase_box_height_button.bind("<Button-1>",  lambda down_event: self.bind_key("bheight+"))
+        self.set_decrease_box_height_label = ctk.CTkLabel(self.settings_frame, text="Decrease Box Height Binding")
+        self.set_decrease_box_height_label.grid(column=0, row=11, padx=2, pady=2)
+        self.set_decrease_box_height_button = ctk.CTkButton(self.settings_frame, text="Bind")
+        self.set_decrease_box_height_button.grid(column=1, row=11, padx=2, pady=2)  
+        self.set_decrease_box_height_button.bind("<Button-1>",  lambda down_event: self.bind_key("bheight-"))
+        
         self.bind_event_data = {}
         self.key_pressed = ""
         self.current_key = ""
-
+        self.master.after(2200, self._get_font_names)
         self.master.after(2000, self.set_bind_event_data)
+    
+    def _get_font_names(self):
+        self._font_names = self.master.cropper_tab.fonts
+        self.set_font_name_combo.configure(values=self._font_names)
     
     def set_bind_event_data(self):
         self.bind_event_data = {
             "left": (self.master.cropper_tab.move_left_button, self.set_left_box_motion_key_button, self.master.cropper_tab.move_box_left), 
             "right":(self.master.cropper_tab.move_right_button, self.set_right_box_motion_key_button, self.master.cropper_tab.move_box_right),
             "up": (self.master.cropper_tab.move_up_button, self.set_up_box_motion_key_button, self.master.cropper_tab.move_box_up), 
-            "down":(self.master.cropper_tab.move_down_button, self.set_down_box_motion_key_button, self.master.cropper_tab.move_box_down)
+            "down":(self.master.cropper_tab.move_down_button, self.set_down_box_motion_key_button, self.master.cropper_tab.move_box_down),
+            "save":(self.master.cropper_tab.add_coordinate_button, self.set_save_coord_button, self.master.cropper_tab.mark_coordinate),
+            "bwidth+":(self.master.cropper_tab.increase_box_width_button, self.set_increase_box_width_button, self.master.cropper_tab.increase_box_width),
+            "bwidth-":(self.master.cropper_tab.decrease_box_width_button, self.set_decrease_box_width_button, self.master.cropper_tab.decrease_box_width),
+            "bheight+":(self.master.cropper_tab.increase_box_height_button, self.set_increase_box_height_button, self.master.cropper_tab.increase_box_height),
+            "bheight-":(self.master.cropper_tab.decrease_box_height_button, self.set_decrease_box_height_button, self.master.cropper_tab.decrease_box_height),
+            
         }
         self.bind_keys = [x for x in list(self.bind_event_data.keys())]
-    
+        self.bound_keys = []
 
         
     def bind_key(self, *args):
@@ -506,7 +634,19 @@ class SettingsTab:
     def keypress_event(self, event):
         print(event)
         self.key_pressed = event.keysym
-        self.bind_event_data[self.current_key][0].configure(text=self.key_pressed)
+        self.bound_keys.append(self.key_pressed)
+        if self.current_key == "save":
+            self.bind_event_data[self.current_key][0].configure(text=f"Mark Coordinate ({self.key_pressed})")
+        elif self.current_key == "bwidth+":
+            self.bind_event_data[self.current_key][0].configure(text=f"Increase Box Width ({self.key_pressed})")
+        elif self.current_key == "bwidth-":
+            self.bind_event_data[self.current_key][0].configure(text=f"Decrease Box Width ({self.key_pressed})")
+        elif self.current_key == "bheight+":
+            self.bind_event_data[self.current_key][0].configure(text=f"Increase Box Height ({self.key_pressed})")
+        elif self.current_key == "bheight-":
+            self.bind_event_data[self.current_key][0].configure(text=f"Decrease Box Height ({self.key_pressed})")
+        else:    
+            self.bind_event_data[self.current_key][0].configure(text=self.key_pressed)
         self.master.bind(f"<{self.key_pressed}>", self.bind_event_data[self.current_key][2])
         self.master.unbind("<KeyPress>")
         [self.bind_event_data[bindkey][1].configure(state="normal") for bindkey in self.bind_keys]
@@ -536,7 +676,7 @@ class SettingsTab:
         Set the font size of available text to the value in set_font_size_combo
         """
         self.font_size = int(self.set_font_size_combo.get())
-        self.master.cropper_tab.set_font()
+        self.set_font()
     
     def set_window_appearance(self, *args):
         """
