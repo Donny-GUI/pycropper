@@ -1,5 +1,4 @@
 import subprocess
-from typing import Optional, Tuple, Union
 import customtkinter as ctk
 import webcolors
 from PIL import ImageTk, Image
@@ -7,65 +6,9 @@ import sys
 import win32com.client
 from fontTools import ttLib
 from coordinateframe import CoordinatesFrame
-
-
-    
-    
-class LabeledValue:
-    def __init__(self, master, name: str="No Label", value:str="No Value"):
-        self.frame = ctk.CTkFrame(master, corner_radius=5)
-        self.corner_rad = 50
-        self.pad_right = 10
-        self.name = name
-        self.value = value
-        self.name_label = ctk.CTkLabel(self.frame, text=self.name, corner_radius=50)
-        self.value_label = ctk.CTkLabel(self.frame, text=self.value, corner_radius=self.corner_rad)
-        self.name_label.grid(column=0, row=0, padx=(5,3), pady=2, sticky="ew")
-        self.value_label.grid(column=1, row=0, padx=(3,5), pady=2, sticky='ew')
-        self.attention_index = 0
-    
-    def grid(self, **kwargs):
-        self.frame.grid(**kwargs)
-    
-    def show(self):
-        self.name_label.grid(column=0, row=0, padx=(5,3), pady=2, sticky="ew")
-        self.value_label.grid(column=1, row=0, padx=(3,5), pady=2, sticky='ew')
-    
-    def attention_value(self):
-        self.highlight_value()
-        self.frame.after(500, self.unhighlight_value)
-
-    def reset_corner_rad(self):
-        self.corner_rad = 50
-        
-    def attention_name(self):
-        self.highlight_name()
-        self.frame.after(500, self.unhighlight_name)
-    
-    def unhighlight_value(self):
-        self.frame.configure(fg_color="transparent")
-    
-    def unhighlight_name(self):
-        self.name_label.configure(fg_color="transparent")
-        
-    def highlight_value(self, color="green"):
-        self.frame.configure(fg_color=color)
-    
-    def highlight_name(self, color="green"):
-        self.name_label.configure(fg_color=color)
-    
-    def hide(self):
-        self.name_label.grid_forget()
-        self.value_label.grid_forget()
-        
-    def set_value(self, value: any):
-        self.value = value
-        self.value_label.configure(text=str(self.value))
-        
-    def set_name(self, name: str):
-        self.name = name
-        self.name_label.configure(text=self.name)
-        
+from labeledvalue import LabeledValue
+from scollingtext import ScrollingTextBox, TypingTextBox
+  
   
 class ImageViewer(ctk.CTk):
     colors = list(webcolors.CSS3_NAMES_TO_HEX.keys())
@@ -129,6 +72,8 @@ class CropperTab:
         self.main_frame.grid(column=0, row=0, sticky='nsew')
         self.left_frame = ctk.CTkFrame(self.main_frame)
         self.left_frame.grid(column=0, row=0, sticky='nw')
+        self.labeled_values_frame = ctk.CTkFrame(self.main_frame)
+        self.labeled_values_frame.grid(column=0, row=1, columnspan=2, sticky='nsew')
         self.right_frame = ctk.CTkFrame(self.main_frame)
         self.right_frame.grid(column=1, row=0, sticky='ne')
         self.subframe_bottom = ctk.CTkFrame(self.left_frame, border_width=4)
@@ -158,13 +103,12 @@ class CropperTab:
         self.save_image_name                = ctk.CTkEntry(     self.subframe_right_bottom, placeholder_text="cropped_image", font=self.font_object)
         self.save_image_extension_combo     = ctk.CTkComboBox(  self.subframe_right_bottom, values=["PNG", "GIF", "JPG"],  font=self.font_object)
         
-        self.box_width_labeled_value  = LabeledValue(self.main_frame, name="Box Width", value=str(16))
-        self.box_height_labeled_value = LabeledValue(self.main_frame, name="Box Height", value=str(16))
-        
-        #self.box_height_label               = ctk.CTkLabel(     self.subframe_right_bottom, text="Box Height", font=self.font_object)
-        #self.box_height_label_value         = ctk.CTkLabel(     self.subframe_right_bottom, text="16", font=self.font_object)
-        #self.box_width_label                = ctk.CTkLabel(      self.subframe_right_bottom, text="Box Width", font=self.font_object)
-        #self.box_width_label_value          = ctk.CTkLabel(      self.subframe_right_bottom, text="16", font=self.font_object)
+        self.box_width_labeled_value  = LabeledValue(  self.labeled_values_frame, name="Box Width", value=str(16))
+        self.box_height_labeled_value = LabeledValue(  self.labeled_values_frame, name="Box Height", value=str(16))
+        self.image_height_labeled_value = LabeledValue(self.labeled_values_frame, name="Image Height", value=str(0))
+        self.image_width_labeled_value = LabeledValue( self.labeled_values_frame, name="Image Width", value=str(0))
+        self.image_path_labeled_value = LabeledValue(  self.labeled_values_frame, name="Image Path", value="")
+        self.typing_textbox = TypingTextBox(master=self.main_frame, width=100, message="right click anything to read what it does")
         
         # placement
         self.image_canvas.grid(                 column=0, row=0, padx=(2, 2), pady=(2,2))
@@ -184,9 +128,14 @@ class CropperTab:
         self.save_image_name_label.grid(        column=1, row=3, padx=(2, 2), pady=(2, 2))
         self.save_image_name.grid(              column=2, row=3, padx=(2, 2), pady=(2, 2))
         
-        self.box_width_labeled_value.grid(column=1, row=4, sticky='se')
-        self.box_height_labeled_value.grid(column=2, row=4, sticky='s')
-
+        #Labeled Value Placements
+        self.box_width_labeled_value.grid(column=0, row=0, padx=(2, 2), pady=(2, 2), sticky='nw')
+        self.box_height_labeled_value.grid(column=1, row=0, padx=(2, 2), pady=(2, 2), sticky='nw')
+        self.image_height_labeled_value.grid(column=2, row=0, padx=(2, 2), pady=(2, 2), sticky='nw')
+        self.image_width_labeled_value.grid(column=3, row=0, padx=(2, 2), pady=(2, 2), sticky='nw')
+        self.image_path_labeled_value.grid(column=4, row=0, padx=(2, 2), pady=(2, 2), sticky='nw')
+        self.typing_textbox.grid(column=0, row=1)
+        self.master.after_idle(self.typing_textbox.start)
         self.save_image_name.insert(0, "cropped_image")
         
         self.save_image_extension_combo.bind("<Button-1>", lambda cbo: self.set_save_extension())
@@ -194,7 +143,9 @@ class CropperTab:
         
         self.disable_until_image_loaded()
 
-    
+    def something_right_clicked(self, event):
+        pass
+        
 
     def get_windows_fonts(self):
         shell = win32com.client.Dispatch("Shell.Application")
@@ -232,7 +183,6 @@ class CropperTab:
             self.get_linux_fonts()
         elif sys.platform.startswith('d'):
             return self.get_mac_fonts()
-        print(self.fonts)
     
     def disable_until_image_loaded(self) -> None:
         """ 
@@ -635,6 +585,7 @@ class SettingsTab:
         print(event)
         self.key_pressed = event.keysym
         self.bound_keys.append(self.key_pressed)
+        
         if self.current_key == "save":
             self.bind_event_data[self.current_key][0].configure(text=f"Mark Coordinate ({self.key_pressed})")
         elif self.current_key == "bwidth+":
@@ -647,6 +598,7 @@ class SettingsTab:
             self.bind_event_data[self.current_key][0].configure(text=f"Decrease Box Height ({self.key_pressed})")
         else:    
             self.bind_event_data[self.current_key][0].configure(text=self.key_pressed)
+            
         self.master.bind(f"<{self.key_pressed}>", self.bind_event_data[self.current_key][2])
         self.master.unbind("<KeyPress>")
         [self.bind_event_data[bindkey][1].configure(state="normal") for bindkey in self.bind_keys]
